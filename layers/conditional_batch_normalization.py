@@ -9,6 +9,7 @@ class ConditionalBatchNormalization(tf.layers.Layer):
   """
 
     def __init__(self,
+                 category,
                  axis=-1,
                  momentum=0.99,
                  epsilon=1e-3,
@@ -31,6 +32,7 @@ class ConditionalBatchNormalization(tf.layers.Layer):
             self.axis = axis[:]
         else:
             self.axis = axis
+        self.category = category
         self.momentum = momentum
         self.epsilon = epsilon
         self.center = center
@@ -87,7 +89,7 @@ class ConditionalBatchNormalization(tf.layers.Layer):
 
         if len(axis_to_dim) == 1:
             # Single axis batch norm (most common/default use-case)
-            param_shape = (list(axis_to_dim.values())[0], )
+            param_shape = [list(axis_to_dim.values())[0]]
         else:
             # Parameter shape is the original shape but with 1 in all non-axis dims
             param_shape = [
@@ -97,7 +99,7 @@ class ConditionalBatchNormalization(tf.layers.Layer):
         if self.scale:
             self.gamma = self.add_variable(
                 name='gamma',
-                shape=param_shape,
+                shape=[self.category] + param_shape,
                 dtype=param_dtype,
                 initializer=self.gamma_initializer,
                 regularizer=self.gamma_regularizer,
@@ -109,7 +111,7 @@ class ConditionalBatchNormalization(tf.layers.Layer):
         if self.center:
             self.beta = self.add_variable(
                 name='beta',
-                shape=param_shape,
+                shape=[self.category] + param_shape,
                 dtype=param_dtype,
                 initializer=self.beta_initializer,
                 regularizer=self.beta_regularizer,
@@ -153,7 +155,11 @@ class ConditionalBatchNormalization(tf.layers.Layer):
             update_delta = (variable - value) * decay
             return tf.assign_sub(variable, update_delta, name=scope)
 
-    def call(self, inputs, training=False):
+    def call(self, inputs, labels=None, training=False):
+        '''
+        Args:
+            labels: shape is [batch_size, 1]. value is in category.
+        '''
         in_eager_mode = tf.contrib.eager.executing_eagerly()
 
         # Compute the axes along which to reduce the mean / variance
@@ -173,7 +179,10 @@ class ConditionalBatchNormalization(tf.layers.Layer):
                 return tf.reshape(v, broadcast_shape)
             return v
 
-        scale, offset = _broadcast(self.gamma), _broadcast(self.beta)
+        scale = _broadcast(tf.nn.embedding_lookup(self.gamma, labels))
+        scale = tf.expand_dims(scale, 1)
+        offset = _broadcast(tf.nn.embedding_lookup(self.beta, labels))
+        offset = tf.expand_dims(offset, 1)
 
         def _compose_transforms(scale, offset, then_scale, then_offset):
             if then_scale is not None:
