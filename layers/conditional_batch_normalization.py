@@ -5,7 +5,7 @@ import tensorflow.contrib.util as utils
 
 class ConditionalBatchNormalization(tf.layers.Layer):
     """Conditional Batch Normalization
-  virtual_batch_size と fused と renorm は未サポート
+  virtual_batch_size と fused と renorm と adjustment は未サポート
   """
 
     def __init__(self,
@@ -23,7 +23,6 @@ class ConditionalBatchNormalization(tf.layers.Layer):
                  beta_constraint=None,
                  gamma_constraint=None,
                  trainable=True,
-                 adjustment=None,
                  name=None,
                  **kwargs):
         super(ConditionalBatchNormalization, self).__init__(
@@ -44,7 +43,6 @@ class ConditionalBatchNormalization(tf.layers.Layer):
         self.gamma_regularizer = gamma_regularizer
         self.beta_constraint = beta_constraint
         self.gamma_constraint = gamma_constraint
-        self.adjustment = adjustment
 
         self._bessels_correction_test_only = True
 
@@ -191,17 +189,6 @@ class ConditionalBatchNormalization(tf.layers.Layer):
         else:
             training_value = training
         if training_value is not False:
-            if self.adjustment:
-                adj_scale, adj_bias = self.adjustment(tf.shape(inputs))
-                # Adjust only during training.
-                adj_scale = tf.cond(
-                    training, lambda: adj_scale,
-                    lambda: tf.ones_like(adj_scale))
-                adj_bias = tf.cond(
-                    training, lambda: adj_bias,
-                    lambda: tf.zeros_like(adj_bias))
-                scale, offset = _compose_transforms(adj_scale, adj_bias, scale,
-                                                    offset)
 
             # Some of the computations here are not necessary when training==False
             # but not a constant. However, this makes the code simpler.
@@ -239,10 +226,6 @@ class ConditionalBatchNormalization(tf.layers.Layer):
         else:
             mean, variance = self.moving_mean, self.moving_variance
 
-        print(mean)
-        print(variance)
-        print(offset)
-        print(scale)
         outputs = tf.nn.batch_normalization(
             inputs,
             _broadcast(mean),
@@ -250,7 +233,6 @@ class ConditionalBatchNormalization(tf.layers.Layer):
             offset,  # (N, 1, 1, C) でも通る
             scale,  # (N, 1, 1, C) でも通る
             self.epsilon)
-        # If some components of the shape got lost due to adjustments, fix that.
         outputs.set_shape(input_shape)
 
         return outputs

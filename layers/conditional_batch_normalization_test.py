@@ -37,9 +37,7 @@ class ConditionalBatchNormalizationTest(tf.test.TestCase):
             outputs = cbn(x, training=True)
             loss = tf.reduce_mean(tf.square(1 - outputs))
 
-        print(loss)
         grads = tape.gradient(loss, cbn.variables)
-        print(grads)
         optimizer = tf.train.GradientDescentOptimizer(0.001)
         optimizer.apply_gradients(zip(grads, cbn.variables))
 
