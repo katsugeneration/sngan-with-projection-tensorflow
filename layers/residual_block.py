@@ -1,5 +1,5 @@
 import tensorflow as tf
-from layers.conditional_batch_normalization import ConditionalBatchNormalization
+from conditional_batch_normalization import ConditionalBatchNormalization
 
 
 class ResidualBlock(tf.layers.Layer):
