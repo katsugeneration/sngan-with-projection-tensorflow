@@ -239,8 +239,8 @@ class ConditionalBatchNormalization(tf.layers.Layer):
             inputs,
             _broadcast(mean),
             _broadcast(variance),
-            offset,  # (N, 1, 1, C) でも通る
-            scale,  # (N, 1, 1, C) でも通る
+            offset,
+            scale,
             self.epsilon)
         outputs.set_shape(input_shape)
 
