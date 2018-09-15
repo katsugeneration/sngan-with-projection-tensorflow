@@ -85,7 +85,11 @@ class ResidualBlock(tf.layers.Layer):
         return vars
 
     def _upsample(self, var):
-        return var
+        height = var.shape[1]
+        width = var.shape[2]
+        return tf.image.resize_images(var,
+                                      (height * 2, width * 2),
+                                      method=tf.image.ResizeMethod.BILINEAR)
 
     def call(self, inputs, labels=None):
         out = self.bn1(inputs) if labels is None else self.bn1(inputs, labels=labels)
