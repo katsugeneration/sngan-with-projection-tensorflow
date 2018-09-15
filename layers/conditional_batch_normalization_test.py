@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from conditional_batch_normalization import ConditionalBatchNormalization
+from layers.conditional_batch_normalization import ConditionalBatchNormalization
 
 tf.enable_eager_execution()
 
