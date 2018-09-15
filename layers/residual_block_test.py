@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
 from residual_block import ResidualBlock
+from conditional_batch_normalization import ConditionalBatchNormalization
 
 tf.enable_eager_execution()
 
@@ -41,6 +42,45 @@ class ResidualBlockTest(tf.test.TestCase):
         self.assertEqual((N, H * 2, W * 2, C), outputs.shape)
         self.assertEqual((rb.ksize, rb.ksize, C, hidden_c), rb.conv1.kernel.shape)
         self.assertEqual((rb.ksize, rb.ksize, C, C), rb.conv_shortcut.kernel.shape)
+
+    def testTrain(self):
+        N = 5
+        W = 10
+        H = 10
+        C = 3
+        hidden_c = 5
+        x = tf.ones((N, H, W, C))
+        rb = ResidualBlock(hidden_c=hidden_c)
+
+        with tf.GradientTape() as tape:
+            outputs = rb(x)
+            loss = tf.reduce_mean(tf.square(1 - outputs))
+
+        grads = tape.gradient(loss, rb.variables)
+        optimizer = tf.train.GradientDescentOptimizer(0.001)
+        optimizer.apply_gradients(zip(grads, rb.variables))
+
+        self.assertEqual(type(rb.bn1), tf.layers.BatchNormalization)
+
+    def testTrainCategory(self):
+        N = 5
+        W = 10
+        H = 10
+        C = 3
+        hidden_c = 5
+        x = tf.ones((N, H, W, C))
+        y = [[3], [1], [3], [1], [3]]
+        rb = ResidualBlock(hidden_c=hidden_c, category=4)
+
+        with tf.GradientTape() as tape:
+            outputs = rb(x, labels=y)
+            loss = tf.reduce_mean(tf.square(1 - outputs))
+
+        grads = tape.gradient(loss, rb.variables)
+        optimizer = tf.train.GradientDescentOptimizer(0.001)
+        optimizer.apply_gradients(zip(grads, rb.variables))
+
+        self.assertEqual(type(rb.bn1), ConditionalBatchNormalization)
 
 
 tf.test.main()
