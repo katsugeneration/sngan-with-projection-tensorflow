@@ -1,0 +1,1 @@
+python test.py */*_test.py

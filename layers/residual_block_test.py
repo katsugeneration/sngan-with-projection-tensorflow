@@ -3,8 +3,6 @@ import tensorflow as tf
 from layers.residual_block import ResidualBlock
 from layers.conditional_batch_normalization import ConditionalBatchNormalization
 
-tf.enable_eager_execution()
-
 
 class ResidualBlockTest(tf.test.TestCase):
     def testInit(self):
@@ -81,6 +79,3 @@ class ResidualBlockTest(tf.test.TestCase):
         optimizer.apply_gradients(zip(grads, rb.variables))
 
         self.assertEqual(type(rb.bn1), ConditionalBatchNormalization)
-
-
-tf.test.main()

@@ -2,8 +2,6 @@ import numpy as np
 import tensorflow as tf
 from layers.conditional_batch_normalization import ConditionalBatchNormalization
 
-tf.enable_eager_execution()
-
 
 class ConditionalBatchNormalizationTest(tf.test.TestCase):
     def testInit(self):
@@ -76,6 +74,3 @@ class ConditionalBatchNormalizationTest(tf.test.TestCase):
         self.assertAllEqual(np.array([0, 0, 0], dtype=np.float32), cbn.beta[2].numpy())
         self.assertAllEqual(-(grads[1].values[1] + grads[1].values[3]) * 0.001, cbn.beta[1].numpy())
         self.assertAllEqual(-(grads[1].values[0] + grads[1].values[2] + grads[1].values[4]) * 0.001, cbn.beta[3].numpy())
-
-
-tf.test.main()

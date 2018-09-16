@@ -2,8 +2,6 @@ import numpy as np
 import tensorflow as tf
 from models.generator import SNGANGenerator
 
-tf.enable_eager_execution()
-
 
 class SNGANGeneratorTest(tf.test.TestCase):
     def testInit(self):
@@ -34,6 +32,3 @@ class SNGANGeneratorTest(tf.test.TestCase):
         grads = tape.gradient(loss, sng.variables)
         optimizer = tf.train.GradientDescentOptimizer(0.001)
         optimizer.apply_gradients(zip(grads, sng.variables))
-
-
-tf.test.main()
