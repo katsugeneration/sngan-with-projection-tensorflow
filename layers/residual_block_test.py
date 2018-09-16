@@ -40,6 +40,7 @@ class ResidualBlockTest(tf.test.TestCase):
         self.assertEqual((N, H * 2, W * 2, C), outputs.shape)
         self.assertEqual((rb.ksize, rb.ksize, C, hidden_c), rb.conv1.kernel.shape)
         self.assertEqual((1, 1, C, C), rb.conv_shortcut.kernel.shape)
+        self.assertTrue(hasattr(rb, 'bn1'))
 
     def testBuildAndRunWithDownsampling(self):
         N = 5
@@ -57,6 +58,7 @@ class ResidualBlockTest(tf.test.TestCase):
         self.assertEqual((N, H / 2, W / 2, C), outputs.shape)
         self.assertEqual((rb.ksize, rb.ksize, C, hidden_c), rb.conv1.kernel.shape)
         self.assertEqual((1, 1, C, C), rb.conv_shortcut.kernel.shape)
+        self.assertFalse(hasattr(rb, 'bn1'))
 
     def testTrain(self):
         N = 5
