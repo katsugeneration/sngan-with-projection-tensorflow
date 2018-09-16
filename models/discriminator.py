@@ -61,7 +61,6 @@ class SNGANDiscriminator(tf.layers.Layer):
                                 regularizer=None,
                                 constraint=None,
                                 trainable=True)
-            tf.keras.layers.Embedding
 
     @property
     def variables(self):
