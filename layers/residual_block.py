@@ -12,7 +12,9 @@ class ResidualBlock(tf.layers.Layer):
                  ksize=3,
                  stride=1,
                  activation=tf.nn.relu,
+                 is_use_bn=True,
                  upsampling=False,
+                 downsampling=False,
                  category=0,
                  trainable=True,
                  name=None,
@@ -24,7 +26,9 @@ class ResidualBlock(tf.layers.Layer):
         self.ksize = ksize
         self.stride = stride
         self.activation = activation
+        self.is_use_bn = is_use_bn
         self.upsampling = upsampling
+        self.downsampling = downsampling
         self.category = category
         self._layers = []
 
@@ -36,7 +40,7 @@ class ResidualBlock(tf.layers.Layer):
             self.out_c = self.in_c
         if self.hidden_c is None:
             self.hidden_c = self.in_c
-        self.is_shortcut_learn = (self.in_c != self.out_c) or self.upsampling
+        self.is_shortcut_learn = (self.in_c != self.out_c) or self.upsampling or self.downsampling
 
         self.conv1 = tf.layers.Conv2D(self.hidden_c,
                                       self.ksize,
@@ -56,21 +60,22 @@ class ResidualBlock(tf.layers.Layer):
                                       kernel_initializer=tf.initializers.random_uniform())
         self._layers.append(self.conv2)
 
-        if self.category:
-            self.bn1 = ConditionalBatchNormalization(self.category)
-            self._layers.append(self.bn1)
-            self.bn2 = ConditionalBatchNormalization(self.category)
-            self._layers.append(self.bn2)
-        else:
-            self.bn1 = tf.layers.BatchNormalization()
-            self._layers.append(self.bn1)
-            self.bn2 = tf.layers.BatchNormalization()
-            self._layers.append(self.bn2)
+        if self.is_use_bn:
+            if self.category:
+                self.bn1 = ConditionalBatchNormalization(self.category)
+                self._layers.append(self.bn1)
+                self.bn2 = ConditionalBatchNormalization(self.category)
+                self._layers.append(self.bn2)
+            else:
+                self.bn1 = tf.layers.BatchNormalization()
+                self._layers.append(self.bn1)
+                self.bn2 = tf.layers.BatchNormalization()
+                self._layers.append(self.bn2)
 
         if self.is_shortcut_learn:
             self.conv_shortcut = tf.layers.Conv2D(self.out_c,
-                                                  self.ksize,
-                                                  strides=(self.stride, self.stride),
+                                                  1,
+                                                  strides=(1, 1),
                                                   padding='SAME',
                                                   use_bias=False,
                                                   activation=None,
@@ -91,16 +96,31 @@ class ResidualBlock(tf.layers.Layer):
                                       (height * 2, width * 2),
                                       method=tf.image.ResizeMethod.BILINEAR)
 
+    def _downsample(self, var):
+        return tf.layers.average_pooling2d(var, (2, 2), (2, 2), padding='SAME')
+
     def call(self, inputs, labels=None):
-        out = self.bn1(inputs) if labels is None else self.bn1(inputs, labels=labels)
+        out = inputs
+        if self.is_use_bn:
+            out = self.bn1(out) if labels is None else self.bn1(out, labels=labels)
         out = self.activation(out)
-        out = self.conv1(self._upsample(out)) if self.upsampling else self.conv1(out)
-        out = self.bn2(inputs) if labels is None else self.bn2(inputs, labels=labels)
+        if self.upsampling:
+            out = self._upsample(out)
+        out = self.conv1(out)
+        if self.is_use_bn:
+            out = self.bn2(out) if labels is None else self.bn2(out, labels=labels)
         out = self.activation(out)
         out = self.conv2(out)
+        if self.downsampling:
+            out = self._downsample(out)
 
         if self.is_shortcut_learn:
-            x = out = self.conv_shortcut(self._upsample(inputs)) if self.upsampling else self.conv_shortcut(inputs)
+            if self.upsampling:
+                x = self.conv_shortcut(self._upsample(inputs))
+            elif self.downsampling:
+                x = self._downsample(self.conv_shortcut(inputs))
+            else:
+                x = self.conv_shortcut(inputs)
         else:
             x = inputs
         return out + x
