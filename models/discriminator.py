@@ -1,5 +1,6 @@
 import tensorflow as tf
 from layers.residual_block import ResidualBlock
+from utils.spectral_normalizer import spectral_normalizer
 
 
 class SNGANDiscriminator(tf.layers.Layer):
@@ -71,6 +72,7 @@ class SNGANDiscriminator(tf.layers.Layer):
 
     def call(self, inputs, labels=None):
         out = inputs
+        self.embed_y = self.embed_y.assign(spectral_normalizer(self.embed_y))
 
         out = self.block1(out)
         out = self.block2(out)
