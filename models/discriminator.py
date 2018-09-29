@@ -44,7 +44,7 @@ class SNGANDiscriminator(tf.layers.Layer):
         self.dense = tf.layers.Dense(1,
                                      use_bias=False,
                                      activation=None,
-                                     kernel_initializer=tf.initializers.random_uniform())
+                                     kernel_initializer=tf.initializers.random_normal())
 
         self._layers += [self.block1,
                          self.block2,
@@ -58,10 +58,14 @@ class SNGANDiscriminator(tf.layers.Layer):
             self.embed_y = self.add_weight(
                                 'embeddings',
                                 shape=[self._category, self._channel * 16],
-                                initializer=tf.initializers.random_uniform(),
+                                initializer=tf.initializers.random_normal(),
                                 regularizer=None,
                                 constraint=None,
                                 trainable=True)
+            self.embed_u = tf.get_variable(
+                            name="u",
+                            shape=(1, self._category),
+                            initializer=tf.initializers.random_normal())
 
     @property
     def variables(self):
@@ -72,7 +76,6 @@ class SNGANDiscriminator(tf.layers.Layer):
 
     def call(self, inputs, labels=None):
         out = inputs
-        self.embed_y = self.embed_y.assign(spectral_normalizer(self.embed_y))
 
         out = self.block1(out)
         out = self.block2(out)
@@ -85,8 +88,10 @@ class SNGANDiscriminator(tf.layers.Layer):
         h = out
         out = self.dense(out)
         if labels is not None:
-            w_y = tf.nn.embedding_lookup(self.embed_y, labels)
-            w_y = tf.reshape(w_y, (-1, self._channel * 16))
-            out += tf.reduce_sum(w_y * h, axis=1, keepdims=True)
+            new_embed_y, new_u = spectral_normalizer(self.embed_y, self.embed_u)
+            with tf.control_dependencies([self.embed_u.assign(new_u), self.embed_y.assign(new_embed_y)]):
+                w_y = tf.nn.embedding_lookup(self.embed_y, labels)
+                w_y = tf.reshape(w_y, (-1, self._channel * 16))
+                out += tf.reduce_sum(w_y * h, axis=1, keepdims=True)
 
         return out

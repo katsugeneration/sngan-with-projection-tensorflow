@@ -34,7 +34,13 @@ class SNGANGeneratorTest(tf.test.TestCase):
 
         grads = tape.gradient(loss, snd.variables)
         optimizer = tf.train.GradientDescentOptimizer(0.001)
+        grads = [tf.clip_by_value(g, -1.0, 1.0) if g is not None else g for g in grads]
         optimizer.apply_gradients(zip(grads, snd.variables))
+
+        u = snd.embed_u.numpy()
+        outputs = snd(x, labels=y)
+        _u = snd.embed_u.numpy()
+        self.assertFalse((u == _u).all())
 
 
 if __name__ == '__main__':
