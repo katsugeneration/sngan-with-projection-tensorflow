@@ -65,7 +65,8 @@ class SNGANDiscriminator(tf.layers.Layer):
             self.embed_u = tf.get_variable(
                             name="u",
                             shape=(1, self._category),
-                            initializer=tf.initializers.random_normal())
+                            initializer=tf.initializers.random_normal(),
+                            trainable=False)
 
     @property
     def variables(self):
