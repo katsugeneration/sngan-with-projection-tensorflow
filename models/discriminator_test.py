@@ -3,7 +3,7 @@ import tensorflow as tf
 from models.discriminator import SNGANDiscriminator
 
 
-class SNGANGeneratorTest(tf.test.TestCase):
+class SNGANDiscriminatorTest(tf.test.TestCase):
     def testInit(self):
         SNGANDiscriminator()
 

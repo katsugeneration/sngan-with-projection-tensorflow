@@ -25,27 +25,33 @@ class SNGANDiscriminator(tf.layers.Layer):
 
         self.block1 = ResidualBlock(out_c=self._channel,
                                     activation=self._activation,
-                                    is_use_bn=False)
+                                    is_use_bn=False,
+                                    is_use_sn=True)
         self.block2 = ResidualBlock(out_c=self._channel * 2,
                                     activation=self._activation,
                                     is_use_bn=False,
-                                    downsampling=True)
+                                    downsampling=True,
+                                    is_use_sn=True)
         self.block3 = ResidualBlock(out_c=self._channel * 4,
                                     activation=self._activation,
                                     is_use_bn=False,
-                                    downsampling=True)
+                                    downsampling=True,
+                                    is_use_sn=True)
         self.block4 = ResidualBlock(out_c=self._channel * 8,
                                     activation=self._activation,
                                     is_use_bn=False,
-                                    downsampling=True)
+                                    downsampling=True,
+                                    is_use_sn=True)
         self.block5 = ResidualBlock(out_c=self._channel * 16,
                                     activation=self._activation,
                                     is_use_bn=False,
-                                    downsampling=True)
+                                    downsampling=True,
+                                    is_use_sn=True)
         self.block6 = ResidualBlock(out_c=self._channel * 16,
                                     activation=self._activation,
                                     is_use_bn=False,
-                                    downsampling=True)
+                                    downsampling=True,
+                                    is_use_sn=True)
 
         self.dense = tf.layers.Dense(1,
                                      use_bias=False,

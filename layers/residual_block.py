@@ -1,4 +1,5 @@
 import tensorflow as tf
+from utils.spectral_normalizer import spectral_normalizer
 from layers.conditional_batch_normalization import ConditionalBatchNormalization
 
 
@@ -16,6 +17,7 @@ class ResidualBlock(tf.layers.Layer):
                  upsampling=False,
                  downsampling=False,
                  category=0,
+                 is_use_sn=False,
                  trainable=True,
                  name=None,
                  **kwargs):
@@ -30,6 +32,7 @@ class ResidualBlock(tf.layers.Layer):
         self.upsampling = upsampling
         self.downsampling = downsampling
         self.category = category
+        self.is_use_sn = is_use_sn
         self._layers = []
 
     def build(self, input_shape):
@@ -49,6 +52,7 @@ class ResidualBlock(tf.layers.Layer):
                                       use_bias=False,
                                       activation=None,
                                       kernel_initializer=tf.initializers.random_normal())
+        self.conv1_u = None
         self._layers.append(self.conv1)
 
         self.conv2 = tf.layers.Conv2D(self.out_c,
@@ -58,6 +62,7 @@ class ResidualBlock(tf.layers.Layer):
                                       use_bias=False,
                                       activation=None,
                                       kernel_initializer=tf.initializers.random_normal())
+        self.conv2_u = None
         self._layers.append(self.conv2)
 
         if self.is_use_bn:
@@ -80,6 +85,7 @@ class ResidualBlock(tf.layers.Layer):
                                                   use_bias=False,
                                                   activation=None,
                                                   kernel_initializer=tf.initializers.random_normal())
+            self.conv_shortcut_u = None
             self._layers.append(self.conv_shortcut)
 
     @property
@@ -106,21 +112,68 @@ class ResidualBlock(tf.layers.Layer):
         out = self.activation(out)
         if self.upsampling:
             out = self._upsample(out)
-        out = self.conv1(out)
+
+        if self.is_use_sn:
+            if not self.conv1.built:
+                self.conv1.build(out.shape)
+            with tf.variable_scope("conv1"):
+                self.conv1_u = tf.get_variable(
+                                    name="u",
+                                    shape=(1, self.conv1.kernel.shape[-1]),
+                                    initializer=tf.initializers.random_normal(),
+                                    trainable=False)
+            kernel_mat = tf.reshape(tf.transpose(self.conv1.kernel, (3, 2, 1, 0)), (self.conv1.kernel.shape[-1], -1))
+            sigma, new_u = spectral_normalizer(kernel_mat, self.conv1_u)
+            with tf.control_dependencies([self.conv1.kernel.assign(self.conv1.kernel / sigma), self.conv1_u.assign(new_u)]):
+                out = self.conv1(out)
+        else:
+            out = self.conv1(out)
+
         if self.is_use_bn:
             out = self.bn2(out) if labels is None else self.bn2(out, labels=labels)
         out = self.activation(out)
-        out = self.conv2(out)
+
+        if self.is_use_sn:
+            if not self.conv2.built:
+                self.conv2.build(out.shape)
+            with tf.variable_scope("conv2"):
+                self.conv2_u = tf.get_variable(
+                                    name="u",
+                                    shape=(1, self.conv2.kernel.shape[-1]),
+                                    initializer=tf.initializers.random_normal(),
+                                    trainable=False)
+            kernel_mat = tf.reshape(tf.transpose(self.conv2.kernel, (3, 2, 1, 0)), (self.conv2.kernel.shape[-1], -1))
+            sigma, new_u = spectral_normalizer(kernel_mat, self.conv2_u)
+            with tf.control_dependencies([self.conv2.kernel.assign(self.conv2.kernel / sigma), self.conv2_u.assign(new_u)]):
+                out = self.conv2(out)
+        else:
+            out = self.conv2(out)
+
         if self.downsampling:
             out = self._downsample(out)
 
         if self.is_shortcut_learn:
-            if self.upsampling:
-                x = self.conv_shortcut(self._upsample(inputs))
-            elif self.downsampling:
-                x = self._downsample(self.conv_shortcut(inputs))
-            else:
-                x = self.conv_shortcut(inputs)
+            control_flow = tf.control_dependencies([])
+            if self.is_use_sn:
+                if not self.conv_shortcut.built:
+                    self.conv_shortcut.build(inputs.shape)
+                with tf.variable_scope("conv_shortcut"):
+                    self.conv_shortcut_u = tf.get_variable(
+                                        name="u",
+                                        shape=(1, self.conv_shortcut.kernel.shape[-1]),
+                                        initializer=tf.initializers.random_normal(),
+                                        trainable=False)
+                kernel_mat = tf.reshape(tf.transpose(self.conv_shortcut.kernel, (3, 2, 1, 0)), (self.conv_shortcut.kernel.shape[-1], -1))
+                sigma, new_u = spectral_normalizer(kernel_mat, self.conv_shortcut_u)
+                control_flow = tf.control_dependencies([self.conv_shortcut.kernel.assign(self.conv_shortcut.kernel / sigma), self.conv_shortcut_u.assign(new_u)])
+
+            with control_flow:
+                if self.upsampling:
+                    x = self.conv_shortcut(self._upsample(inputs))
+                elif self.downsampling:
+                    x = self._downsample(self.conv_shortcut(inputs))
+                else:
+                    x = self.conv_shortcut(inputs)
         else:
             x = inputs
         return out + x
