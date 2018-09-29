@@ -24,21 +24,27 @@ class SNGANDiscriminator(tf.layers.Layer):
         input_shape = tf.TensorShape(input_shape)
 
         self.block1 = ResidualBlock(out_c=self._channel,
-                                    activation=self._activation)
+                                    activation=self._activation,
+                                    is_use_bn=False)
         self.block2 = ResidualBlock(out_c=self._channel * 2,
                                     activation=self._activation,
+                                    is_use_bn=False,
                                     downsampling=True)
         self.block3 = ResidualBlock(out_c=self._channel * 4,
                                     activation=self._activation,
+                                    is_use_bn=False,
                                     downsampling=True)
         self.block4 = ResidualBlock(out_c=self._channel * 8,
                                     activation=self._activation,
+                                    is_use_bn=False,
                                     downsampling=True)
         self.block5 = ResidualBlock(out_c=self._channel * 16,
                                     activation=self._activation,
+                                    is_use_bn=False,
                                     downsampling=True)
         self.block6 = ResidualBlock(out_c=self._channel * 16,
                                     activation=self._activation,
+                                    is_use_bn=False,
                                     downsampling=True)
 
         self.dense = tf.layers.Dense(1,
