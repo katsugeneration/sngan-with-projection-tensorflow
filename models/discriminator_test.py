@@ -38,9 +38,12 @@ class SNGANGeneratorTest(tf.test.TestCase):
         optimizer.apply_gradients(zip(grads, snd.variables))
 
         u = snd.embed_u.numpy()
+        dense_u = snd.dense_u.numpy()
         outputs = snd(x, labels=y)
         _u = snd.embed_u.numpy()
+        _dense_u = snd.dense_u.numpy()
         self.assertFalse((u == _u).all())
+        self.assertFalse((dense_u == _dense_u).all())
 
 
 if __name__ == '__main__':

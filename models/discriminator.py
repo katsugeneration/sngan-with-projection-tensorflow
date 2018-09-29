@@ -45,6 +45,7 @@ class SNGANDiscriminator(tf.layers.Layer):
                                      use_bias=False,
                                      activation=None,
                                      kernel_initializer=tf.initializers.random_normal())
+        self.dense_u = None
 
         self._layers += [self.block1,
                          self.block2,
@@ -87,7 +88,19 @@ class SNGANDiscriminator(tf.layers.Layer):
         out = self._activation(out)
         out = tf.reduce_sum(out, axis=(1, 2))
         h = out
-        out = self.dense(out)
+
+        if self.dense_u is None:
+            with tf.variable_scope("dense"):
+                self.dense_u = tf.get_variable(
+                                    name="u",
+                                    shape=(1, out.shape[-1]),
+                                    initializer=tf.initializers.random_normal(),
+                                    trainable=False)
+        if not self.dense.built:
+            self.dense.build(out.shape)
+        with spectral_normalizer(self.dense.kernel, self.dense_u):
+            out = self.dense(out)
+
         if labels is not None:
             with spectral_normalizer(self.embed_y, self.embed_u):
                 w_y = tf.nn.embedding_lookup(self.embed_y, labels)
