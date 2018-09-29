@@ -48,7 +48,7 @@ class ResidualBlock(tf.layers.Layer):
                                       padding='SAME',
                                       use_bias=False,
                                       activation=None,
-                                      kernel_initializer=tf.initializers.random_uniform())
+                                      kernel_initializer=tf.initializers.random_normal())
         self._layers.append(self.conv1)
 
         self.conv2 = tf.layers.Conv2D(self.out_c,
@@ -57,7 +57,7 @@ class ResidualBlock(tf.layers.Layer):
                                       padding='SAME',
                                       use_bias=False,
                                       activation=None,
-                                      kernel_initializer=tf.initializers.random_uniform())
+                                      kernel_initializer=tf.initializers.random_normal())
         self._layers.append(self.conv2)
 
         if self.is_use_bn:
@@ -79,7 +79,7 @@ class ResidualBlock(tf.layers.Layer):
                                                   padding='SAME',
                                                   use_bias=False,
                                                   activation=None,
-                                                  kernel_initializer=tf.initializers.random_uniform())
+                                                  kernel_initializer=tf.initializers.random_normal())
             self._layers.append(self.conv_shortcut)
 
     @property
