@@ -104,11 +104,13 @@ class SNGANDiscriminator(tf.layers.Layer):
                                     trainable=False)
         if not self.dense.built:
             self.dense.build(out.shape)
-        with spectral_normalizer(self.dense.kernel, self.dense_u):
+        sigma, new_u = spectral_normalizer(self.dense.kernel, self.dense_u)
+        with tf.control_dependencies([self.dense.kernel.assign(self.dense.kernel / sigma), self.dense_u.assign(new_u)]):
             out = self.dense(out)
 
         if labels is not None:
-            with spectral_normalizer(self.embed_y, self.embed_u):
+            sigma, new_u = spectral_normalizer(self.embed_y, self.embed_u)
+            with tf.control_dependencies([self.embed_y.assign(self.embed_y / sigma), self.embed_u.assign(new_u)]):
                 w_y = tf.nn.embedding_lookup(self.embed_y, labels)
                 w_y = tf.reshape(w_y, (-1, self._channel * 16))
                 out += tf.reduce_sum(w_y * h, axis=1, keepdims=True)

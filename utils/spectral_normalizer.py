@@ -6,4 +6,4 @@ def spectral_normalizer(W, u):
     _u = tf.nn.l2_normalize(tf.matmul(v, W, transpose_b=True))
     sigma = tf.matmul(tf.matmul(_u, W), v, transpose_b=True)
     sigma = tf.reduce_sum(sigma)
-    return tf.control_dependencies([W.assign(W / sigma), u.assign(_u)])
+    return sigma, _u
