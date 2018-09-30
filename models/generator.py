@@ -27,7 +27,7 @@ class SNGANGenerator(tf.layers.Layer):
         self.dense = tf.layers.Dense((self._bottom_w ** 2) * self._channel * 16,
                                      use_bias=False,
                                      activation=None,
-                                     kernel_initializer=tf.initializers.random_uniform())
+                                     kernel_initializer=tf.initializers.random_normal())
         self.block1 = ResidualBlock(out_c=self._channel * 16,
                                     activation=self._activation,
                                     category=self._category,
@@ -54,7 +54,7 @@ class SNGANGenerator(tf.layers.Layer):
                                      padding='SAME',
                                      use_bias=False,
                                      activation=None,
-                                     kernel_initializer=tf.initializers.random_uniform())
+                                     kernel_initializer=tf.initializers.random_normal())
 
         self._layers += [self.dense,
                          self.block1,
